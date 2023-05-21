@@ -1,0 +1,2 @@
+badge,url,suburb,state,postcode,short_address,full_address,price,price_text,property_type_detail,bedrooms,bathrooms,parking_spaces,building_size,building_size_unit,land_size,land_size_unit,listing_company_id,listing_company_name,auction_date,available_date,sold_date,property_type,building_size_clean,land_size_clean
+Sold,https://www.realestate.com.au/sold/property-house-nsw-toongabbie+east-105390062,Toongabbie East,NSW,2146,,,465000,"Range: $395,000 - $465,000",house,3,2,2,,,-1.0,,,,,,14 Jan 2009,house,,-1.0

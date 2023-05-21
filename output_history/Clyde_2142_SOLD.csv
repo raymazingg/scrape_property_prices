@@ -1,0 +1,2 @@
+badge,url,suburb,state,postcode,short_address,full_address,price,price_text,property_type_detail,bedrooms,bathrooms,parking_spaces,building_size,building_size_unit,land_size,land_size_unit,listing_company_id,listing_company_name,auction_date,available_date,sold_date,property_type,building_size_clean,land_size_clean
+Sold,https://www.realestate.com.au/sold/property-house-nsw-clyde-106769944,Clyde,NSW,2142,,,680000,"$680,000",house,3,1,0,,,-1.0,,,,,,23 Jul 2011,house,,-1.0

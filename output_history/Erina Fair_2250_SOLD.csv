@@ -1,0 +1,3 @@
+badge,url,suburb,state,postcode,short_address,full_address,price,price_text,property_type_detail,bedrooms,bathrooms,parking_spaces,building_size,building_size_unit,land_size,land_size_unit,listing_company_id,listing_company_name,auction_date,available_date,sold_date,property_type,building_size_clean,land_size_clean
+Sold,https://www.realestate.com.au/sold/property-retirement+living-nsw-erina+fair-110234389,Erina Fair,NSW,2250,,,,Contact agent,retire,1,1,1,39.95,m²,90.0,m²,QTERPQ,Green Life Erina - Erina,,,14 Jan 2013,unit apartment,39.95,90.0
+Sold,https://www.realestate.com.au/sold/property-retirement+living-nsw-erina+fair-110234389,Erina Fair,NSW,2250,,,,Contact agent,retire,1,1,1,39.95,m²,90.0,m²,QTERPQ,Green Life Erina - Erina,,,14 Jan 2013,retire,39.95,90.0

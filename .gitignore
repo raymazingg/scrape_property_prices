@@ -1,3 +1,10 @@
 .idea/
 venv/
 archive/
+output_history/
+setup.py
+README.md
+Pipfile.lock
+Pipfile
+LICENSE
+ALL_SOLD.csv

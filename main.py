@@ -1,16 +1,17 @@
-# This is a sample Python script.
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import json
+from dataclasses import asdict
+from realestate_com_au import RealestateComAu
 
+api = RealestateComAu()
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+# Get property listings
+listings = api.search(
+    locations=["Edmondson Park, NSW 2171"], # search term
+    channel="sold", # listing type
+    sort_type="new-desc", # sort method
+    limit=10, # number of articles to collect
+    property_types = ["townhouse"],  # "house", "unit apartment", "townhouse", "villa", "land", "acreage", "retire", "unitblock""
+    min_bedrooms = 1,
+    max_bedrooms = 1
+)
