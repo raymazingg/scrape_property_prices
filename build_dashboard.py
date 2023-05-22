@@ -20,7 +20,7 @@ def read_data(file_path):
 
 
 all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
-data_path = r"C:\Users\raymo\PycharmProjects\PropertyPriceScraper\ALL_SOLD.zip"
+data_path = r"ALL_SOLD.zip"
 data = read_data(data_path)
 # st.dataframe(data)
 
