@@ -11,7 +11,7 @@ st.set_page_config(page_title="Sydney Sold Properties Analysis", layout="wide")
 
 @st.cache_data
 def read_data(file_path):
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, compression='zip')
     df = df.iloc[:3000]
     for i in ["bedrooms", "bathrooms", "parking_spaces"]:
         df[i] = df[i].replace(np.nan, -1, regex=True)
@@ -20,7 +20,7 @@ def read_data(file_path):
 
 
 all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
-data_path = r"C:\Users\raymo\PycharmProjects\PropertyPriceScraper\ALL_SOLD.csv"
+data_path = r"C:\Users\raymo\PycharmProjects\PropertyPriceScraper\ALL_SOLD.zip"
 data = read_data(data_path)
 # st.dataframe(data)
 
