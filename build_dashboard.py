@@ -5,25 +5,17 @@ from streamlit import session_state as ss
 import streamlit_toggle as tog
 import plotly.express as px
 
-
+# Set page config
 st.set_page_config(page_title="Sydney Sold Properties Analysis", layout="wide")
 
-
+# Define functions
 @st.cache_data
 def read_data(file_path):
-    df = pd.read_csv(file_path, compression='zip')
-    df = df.iloc[:3000]
+    df = pd.read_csv(file_path, parse_dates=["sold_date"], compression='zip')
+    # df = df.iloc[:3000]
     for i in ["bedrooms", "bathrooms", "parking_spaces"]:
         df[i] = df[i].replace(np.nan, -1, regex=True)
-    df["sold_date"] = pd.to_datetime(df["sold_date"])
     return df
-
-
-all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
-data_path = r"ALL_SOLD.zip"
-data = read_data(data_path)
-# st.dataframe(data)
-
 
 def on_filter_change(user_filter, all_filters, data):
     ss["most_recently_changed"] = user_filter
@@ -35,39 +27,28 @@ def on_filter_change(user_filter, all_filters, data):
         ss[f"{i}_default_selections"] = None
     for i in remaining_filters:
         selected[i] = ss[i]
-        # if np.isnan(ss[user_filter]).any():
-        #     available[i] = data.loc[data[user_filter].isin(ss[user_filter]) | data[user_filter].isnull(), i].unique()
-        # else:
-        #     available[i] = data.loc[data[user_filter].isin(ss[user_filter]), i].unique() # Think i need to fix this
         available[i] = data.loc[data[user_filter].isin(ss[user_filter]), i].unique()
 
         if len(ss[user_filter]) == 0:
             ss[f"{i}_default_selections"] = ss[i]
         else:
-
             ss[f"{i}_default_selections"] = [k for k in selected[i] if k in available[i]]
-            # st.write(f"{selected[i]}")
-            # st.write(f"{available[i]}")
-            # if (np.isnan(selected[i]).any()) and (np.isnan(available[i]).any()):
-            #     ss[f"{i}_default_selections"].append(np.nan)
-
 
     # Configure dropdown options (for dynamic filtering)
     for i in all_filters:
         other_active_filters = [j for j in all_filters if (i != j) and (len(ss[j]) != 0)]
         filtered_data_temp = data.copy()
         for k in other_active_filters:
-            # if np.isnan(ss[f"{k}_default_selections"]).any():
-            #     filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"]) | filtered_data_temp[k].isnull()]
-            # else:
-            #     filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
             filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
-
         ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
 
+# Define global options
+all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
+data_path = r".\sold_dashboard_data\zip\ALL_SOLD.zip"
+data = read_data(data_path)
 
-
-# ----SIDEBAR---
+# SIDEBAR
+# Top of it (messages, toggle)
 st.sidebar.caption("Select nothing to apply no filter. For numeric filters, a value of -1 implies an NA entry for that property.")
 with st.sidebar:
     col1, col2 = st.columns([4.8,1])
@@ -77,19 +58,7 @@ with st.sidebar:
         dynamic_filter_toggle = tog.st_toggle_switch(default_value=True, key="dynamic_filter_toggle", inactive_color='#D3D3D3', active_color="#11567f", track_color="#29B5E8")
 st.sidebar.header("Global Filters:")
 
-for i in all_filters:
-    if f"{i}_options" not in ss:
-        ss[f"{i}_options"] = np.sort(data[i].unique())
-    # if i not in ss:
-    #     ss[i] = ss[f"{i}_options"].copy()
-    if f"{i}_default_selections" not in ss:
-        ss[f"{i}_default_selections"] = None
-
-if "most_recently_changed" not in ss:
-    ss["most_recently_changed"] = None
-if "dynamic_filter_tracker" not in ss:
-    ss["dynamic_filter_tracker"] = [True, True]
-
+# Reset/fill buttons
 filter_buttons = st.sidebar.columns(2, gap="small")
 with filter_buttons[0]:
     clear_filters = st.button(label="Reset filters",
@@ -98,7 +67,23 @@ with filter_buttons[-1]:
     fill_filters = st.button(label="Fill all filters",
                               help="Fill all filters.\n\n Based on most recent selection of filters.\n\n The most recent filter is left unchanged.")
 
+# Pre-define session state options
+# Sidebar dropdown and options
+for i in all_filters:
+    if f"{i}_options" not in ss:
+        ss[f"{i}_options"] = np.sort(data[i].unique())
+    if f"{i}_default_selections" not in ss:
+        ss[f"{i}_default_selections"] = None
+
+# most_recently_changed (for fill options). dynamic_filter_tracker (for toggle)
+if "most_recently_changed" not in ss:
+    ss["most_recently_changed"] = None
+if "dynamic_filter_tracker" not in ss:
+    ss["dynamic_filter_tracker"] = [True, True]
+
+# Track dynamic toggling (so we know when it changes)
 ss["dynamic_filter_tracker"] = (ss["dynamic_filter_tracker"] + [dynamic_filter_toggle])[-2:]
+# If clear_filters is selected, or dynamic toggle changes from False to True, clear all filters
 if clear_filters or (not(ss["dynamic_filter_tracker"][-2]) and ss["dynamic_filter_tracker"][-1]):
     for i in all_filters:
         ss[f"{i}_options"] = np.sort(data[i].unique())
@@ -106,7 +91,7 @@ if clear_filters or (not(ss["dynamic_filter_tracker"][-2]) and ss["dynamic_filte
     if not(ss["dynamic_filter_toggle"] or ss["dynamic_filter_toggle"] is None):
         for i in all_filters:
             ss[i] = []
-
+# Fill filters
 if fill_filters:
     for i in all_filters:
         if i != ss["most_recently_changed"]:
@@ -114,6 +99,7 @@ if fill_filters:
         else:
             ss[f"{i}_options"] = ss[i]
 
+# Define on_change_function based on whether dynamic filtering is turned on (does nothing if it's off)
 if ss["dynamic_filter_toggle"] or ss["dynamic_filter_toggle"] is None:
     on_change_function = on_filter_change
 else:
@@ -121,6 +107,7 @@ else:
     for i in all_filters:
         ss[f"{i}_options"] = np.sort(data[i].unique())
 
+# All sidebar filters
 suburb_select = st.sidebar.multiselect(label="Select the Suburb(s):",
                                        options=ss["suburb_options"],
                                        on_change=on_change_function,
@@ -167,10 +154,7 @@ parking_spaces_select = st.sidebar.multiselect(label="Select the Number of Parki
                                               default=ss["parking_spaces_default_selections"],
                                               key="parking_spaces")
 
-
-# st.write(st.session_state)
-
-
+# Filter data based on selected filters
 active_filters = [i for i in all_filters if len(ss[i]) != 0]
 query_string = ""
 for i in range(len(active_filters)):
@@ -183,21 +167,27 @@ if query_string == "":
     df_selection = data
 else:
     df_selection = data.query(query_string)
-# st.dataframe(df_selection)
 
+# Aggregate option selections (level and type)
 aggregate_option_selection = st.columns(2, gap="medium")
 with aggregate_option_selection[0]:
     aggregate_option_level = st.selectbox("Select the level of Aggregation for Time Distribution Plots",
-                                    ("Daily", "Monthly", "Quarterly", "Half-Yearly", "Annually"))
+                                    ("Daily", "Monthly", "Quarterly", "Half-Yearly", "Annually"), index=2)
 with aggregate_option_selection[-1]:
     aggregate_option_type = st.selectbox("Select the type of Aggregation for Time Distribution Plots",
                                     ("Mean", "Median", "Mode", "Min", "Max"))
-import datetime as dt
+
+# Timescale slider (not working at the moment - think it also needs to filter dataframe)
+min_date = data["sold_date"].min().date()
+max_date = data["sold_date"].max().date()
 factor_option_level = st.selectbox("Select the factor to compare by in Time Distribution Plots (Factor Views)", all_filters)
-time_select = st.slider(label="Select time range for Time Distribution Plots", min_value=dt.date(year=2021,month=1,day=1), max_value=dt.datetime.now().date(), value=[dt.date(year=2021,month=1,day=1), dt.datetime.now().date()], format='MMM DD, YYYY')
+time_select = st.slider(label="Select time range for Time Distribution Plots", min_value=min_date, max_value=max_date, value=[min_date, max_date], format='MMM DD, YYYY')
+if time_select[0] != min_date or time_select[1] != max_date:
+    df_selection = df_selection.loc[(df_selection["sold_date"] >= pd.Timestamp(time_select[0])) & (df_selection["sold_date"] <= pd.Timestamp(time_select[1]))]
 
 st.divider()
 
+# Add date columns based on aggregation level
 if aggregate_option_level == "Monthly":
     df_selection["sold_month"] = df_selection["sold_date"].dt.strftime('%Y') + df_selection["sold_date"].dt.strftime('%m')
 elif aggregate_option_level == "Quarterly":
@@ -207,32 +197,28 @@ elif aggregate_option_level == "Half-Yearly":
 elif aggregate_option_level == "Annually":
     df_selection["sold_year"] = df_selection["sold_date"].dt.strftime('%Y')
 
+# Mapping for aggregate level and type
 aggregate_level_map = {"Daily": "sold_date", "Monthly": "sold_month", "Quarterly": "sold_quarter", "Half-Yearly": "sold_half_year", "Annually": "sold_year"}
-aggregate_option_map = {"Mean": "mean_price", "Median": "median_price", "Mode": "mode_price", "Min": "min_price", "Max": "max_price"}
+aggregate_type_map = {"Mean": "mean_price", "Median": "median_price", "Mode": "mode_price", "Min": "min_price", "Max": "max_price"}
 
-def aggregate_type_map(df, type):
-    df = df.reset_index(drop=True)
-    if type == "Mean":
-        return pd.DataFrame({"mean_price": [df["price"].mean()], "count": [df["price"].count()]})
-    elif type == "Median":
-        return pd.DataFrame({aggregate_level_map[aggregate_option_level]: df[aggregate_level_map[aggregate_option_level]][[0]], "median_price":  df["price"].median(), "count": df["price"].count()})
-    elif type == "Mode":
-        return pd.DataFrame({aggregate_level_map[aggregate_option_level]: df[aggregate_level_map[aggregate_option_level]][[0]], "mode_price":  df["price"].mode(), "count": df["price"].count()})
-    elif type == "Min":
-        return pd.DataFrame({aggregate_level_map[aggregate_option_level]: df[aggregate_level_map[aggregate_option_level]][[0]], "min_price":  df["price"].min(), "count": df["price"].count()})
-    elif type == "Max":
-        return pd.DataFrame({aggregate_level_map[aggregate_option_level]: df[aggregate_level_map[aggregate_option_level]][[0]], "max_price":  df["price"].max(), "count": df["price"].count()})
+# Get aggregated/factored dataframes
+if aggregate_option_type == "Mean":
+    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
+    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
+elif aggregate_option_type == "Median":
+    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
+    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
+elif aggregate_option_type == "Mode":
+    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
+    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
+elif aggregate_option_type == "Max":
+    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
+    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
+elif aggregate_option_type == "Min":
+    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
+    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
 
-# def comparison_assist(chosen_factor):
-
-# aggregate_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + active_filters)["price"].apply(aggregate_type_map, aggregate_option_type).reset_index(drop=False)
-aggregate_by_date = df_selection[[aggregate_level_map[aggregate_option_level], "price"]].groupby(by=[aggregate_level_map[aggregate_option_level]]).apply(aggregate_type_map, aggregate_option_type).reset_index(drop=False)
-aggregate_fig = px.line(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_option_map[aggregate_option_type], title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Aggregate View", template="plotly_white")
-st.plotly_chart(aggregate_fig, use_container_width=True)
-
-# st.divider()
-
-factor_by_date = df_selection[[aggregate_level_map[aggregate_option_level], "price"] + [factor_option_level]].groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).apply(aggregate_type_map, aggregate_option_type).reset_index(drop=False)
+# Intermediate sorting required for factor graphs
 if aggregate_level_map[aggregate_option_level] in ["sold_date", "sold_month", "sold_year"]:
     factor_by_date["sort_date"] = pd.to_numeric(factor_by_date[aggregate_level_map[aggregate_option_level]], errors="coerce")
 elif aggregate_level_map[aggregate_option_level] == "sold_half_year":
@@ -245,26 +231,29 @@ elif aggregate_level_map[aggregate_option_level] == "sold_quarter":
     factor_by_date["sort_date"] = pd.to_numeric(factor_by_date["year"] + factor_by_date["quarter"], errors="coerce")
 factor_by_date = factor_by_date.sort_values(by=[factor_option_level, "sort_date"]).reset_index(drop=True)
 
-factor_fig = px.line(factor_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_option_map[aggregate_option_type],
+# Line charts - for price metrics
+aggregate_fig = px.line(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type], title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Aggregate View", template="plotly_white")
+factor_fig = px.line(factor_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type],
                      color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Factor View",
                      template="plotly_white")
-
 factor_fig.update_layout(legend=dict(orientation="h", y=-0.22))
+st.plotly_chart(aggregate_fig, use_container_width=True)
 st.plotly_chart(factor_fig, use_container_width=True)
 st.divider()
 
+# Bar charts - for volume metrics
 aggregate_fig_bar = px.bar(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y="count", category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Aggregate View",
                      template="plotly_white")
 aggregate_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
-st.plotly_chart(aggregate_fig_bar, use_container_width=True)
-st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
-
 factor_fig_bar = px.bar(factor_by_date, x=aggregate_level_map[aggregate_option_level], y="count", color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Factor View",
                      template="plotly_white")
 factor_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
+
+st.plotly_chart(aggregate_fig_bar, use_container_width=True)
+st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
 st.plotly_chart(factor_fig_bar, use_container_width=True)
 st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
 st.divider()
