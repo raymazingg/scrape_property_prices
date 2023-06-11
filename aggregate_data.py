@@ -41,6 +41,6 @@ df_aggr["bathrooms"] = np.where(df_aggr["bathrooms"] >= 20, 20, df_aggr["bathroo
 df_aggr["bedrooms"] = np.where(df_aggr["bedrooms"] >= 20, 20, df_aggr["bedrooms"]) # Cap bedrooms at 25
 df_aggr["parking_spaces"] = np.where(df_aggr["parking_spaces"] >= 10, 10, df_aggr["parking_spaces"]) # Cap parking_spaces at 25
 
-df_aggr.to_csv(os.path.join(main_folder, "sold_dashboard_data", "csv", "ALL_SOLD.csv"), index=False)
-with zipfile.ZipFile(os.path.join(main_folder, "sold_dashboard_data", "zip", "ALL_SOLD.zip"), 'w', zipfile.ZIP_DEFLATED) as zf:
-    zf.write(os.path.join(main_folder, "sold_dashboard_data", "csv", "ALL_SOLD.csv"), arcname="ALL_SOLD.csv")
+df_aggr.to_csv(os.path.join(main_folder, "ALL_SOLD.csv"), index=False)
+with zipfile.ZipFile(os.path.join(main_folder, "ALL_SOLD.zip"), 'w', zipfile.ZIP_DEFLATED) as zf:
+    zf.write(os.path.join(main_folder, "ALL_SOLD.csv"), arcname="ALL_SOLD.csv")
