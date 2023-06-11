@@ -12,7 +12,7 @@ st.set_page_config(page_title="Sydney Sold Properties Analysis", layout="wide")
 @st.cache_data
 def read_data(file_path):
     df = pd.read_csv(file_path, parse_dates=["sold_date"], compression='zip')
-    df = df.iloc[:3000]
+    # df = df.iloc[:3000]
     for i in ["bedrooms", "bathrooms", "parking_spaces"]:
         df[i] = df[i].replace(np.nan, -1, regex=True)
     return df
