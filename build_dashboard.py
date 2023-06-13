@@ -266,4 +266,8 @@ for name in dir():
     if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
         del globals()[name]
 
+for name in dir():
+    if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
+        del locals()[name]
+        
 gc.collect()
