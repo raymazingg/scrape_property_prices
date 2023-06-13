@@ -4,6 +4,7 @@ import numpy as np
 from streamlit import session_state as ss
 import streamlit_toggle as tog
 import plotly.express as px
+import gc
 
 st.set_page_config(page_title="Sydney Sold Properties Analysis", layout="wide")
 
@@ -256,8 +257,7 @@ st.caption("Zoom in, or set aggregation level to a more broad selection to see b
 st.divider()
 
 for name in dir():
-    if not (name.startswith('_') or name.startswith('ss')):
+    if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
         del globals()[name]
 
-import gc
 gc.collect()
