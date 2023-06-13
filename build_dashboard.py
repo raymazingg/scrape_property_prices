@@ -38,9 +38,11 @@ def on_filter_change(user_filter, all_filters, data):
     for i in all_filters:
         other_active_filters = [j for j in all_filters if (i != j) and (len(ss[j]) != 0)]
         # filtered_data_temp = data.copy()
+        indexer = pd.Series([True] * len(data))
         for k in other_active_filters:
+            indexer = indexer & (data[k].isin(ss[f"{k}_default_selections"]))
             # filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
-            filtered_data_temp = data.loc[data[k].isin(ss[f"{k}_default_selections"])]
+        filtered_data_temp = data.loc[indexer]
         ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
 
 # Define global options
