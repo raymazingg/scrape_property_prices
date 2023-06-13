@@ -37,9 +37,10 @@ def on_filter_change(user_filter, all_filters, data):
     # Configure dropdown options (for dynamic filtering)
     for i in all_filters:
         other_active_filters = [j for j in all_filters if (i != j) and (len(ss[j]) != 0)]
-        filtered_data_temp = data.copy()
+        # filtered_data_temp = data.copy()
         for k in other_active_filters:
-            filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
+            # filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
+            filtered_data_temp = data.loc[data[k].isin(ss[f"{k}_default_selections"])]
         ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
 
 # Define global options
@@ -269,5 +270,5 @@ for name in dir():
 for name in dir():
     if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
         del locals()[name]
-        
+
 gc.collect()
