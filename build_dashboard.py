@@ -168,6 +168,9 @@ if query_string == "":
 else:
     df_selection = data.query(query_string)
 
+del data
+gc.collect()
+
 # Aggregate option selections (level and type)
 aggregate_option_selection = st.columns(2, gap="medium")
 with aggregate_option_selection[0]:
@@ -215,6 +218,9 @@ elif aggregate_option_type == "Max":
 elif aggregate_option_type == "Min":
     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
+
+del df_selection
+gc.collect()
 
 # Intermediate sorting required for factor graphs
 if aggregate_level_map[aggregate_option_level] in ["sold_date", "sold_month", "sold_year"]:
