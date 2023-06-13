@@ -4,6 +4,7 @@ import numpy as np
 from streamlit import session_state as ss
 import streamlit_toggle as tog
 import plotly.express as px
+import gc
 
 def main():
     # Set page config
@@ -170,6 +171,7 @@ def main():
         df_selection = data.query(query_string)
 
     del data
+    gc.collect()
 
     # Aggregate option selections (level and type)
     aggregate_option_selection = st.columns(2, gap="medium")
@@ -220,6 +222,7 @@ def main():
         factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
 
     del df_selection
+    gc.collect()
 
     # Intermediate sorting required for factor graphs
     if aggregate_level_map[aggregate_option_level] in ["sold_date", "sold_month", "sold_year"]:
@@ -262,5 +265,5 @@ def main():
     st.divider()
 
     del aggregate_by_date, factor_by_date
-    
+    gc.collect()
 main()
