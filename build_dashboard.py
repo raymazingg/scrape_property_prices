@@ -261,4 +261,6 @@ def main():
     st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
     st.divider()
 
+    del aggregate_by_date, factor_by_date
+    
 main()
