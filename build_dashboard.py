@@ -4,8 +4,6 @@ import numpy as np
 from streamlit import session_state as ss
 import streamlit_toggle as tog
 import plotly.express as px
-import gc
-
 
 st.set_page_config(page_title="Sydney Sold Properties Analysis", layout="wide")
 
@@ -261,4 +259,5 @@ for name in dir():
     if not name.startswith('_'):
         del globals()[name]
 
+import gc
 gc.collect()
