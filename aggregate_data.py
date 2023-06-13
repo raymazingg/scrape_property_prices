@@ -41,6 +41,8 @@ df_aggr["bathrooms"] = np.where(df_aggr["bathrooms"] >= 20, 20, df_aggr["bathroo
 df_aggr["bedrooms"] = np.where(df_aggr["bedrooms"] >= 20, 20, df_aggr["bedrooms"]) # Cap bedrooms at 25
 df_aggr["parking_spaces"] = np.where(df_aggr["parking_spaces"] >= 10, 10, df_aggr["parking_spaces"]) # Cap parking_spaces at 25
 
+drop_list = ["badge", "state", "full_address", "price_text", "listing_company_id", "listing_company_name", "auction_date", "available_date", "building_size", "land_size"]
+df_aggr.drop(columns=drop_list, inplace=True)
 df_aggr.to_csv(os.path.join(main_folder, "ALL_SOLD.csv"), index=False)
 with zipfile.ZipFile(os.path.join(main_folder, "ALL_SOLD.zip"), 'w', zipfile.ZIP_DEFLATED) as zf:
     zf.write(os.path.join(main_folder, "ALL_SOLD.csv"), arcname="ALL_SOLD.csv")
