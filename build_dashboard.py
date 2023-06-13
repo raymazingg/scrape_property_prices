@@ -256,7 +256,7 @@ st.caption("Zoom in, or set aggregation level to a more broad selection to see b
 st.divider()
 
 for name in dir():
-    if not name.startswith('_'):
+    if not (name.startswith('_') or name.startswith('ss')):
         del globals()[name]
 
 import gc
