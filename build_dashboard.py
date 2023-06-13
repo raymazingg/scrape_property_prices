@@ -43,7 +43,8 @@ def main():
             for k in other_active_filters:
                 filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
             ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
-
+        del filtered_data_temp
+        gc.collect()
     # Define global options
     all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
     data_path = r"ALL_SOLD.zip"
