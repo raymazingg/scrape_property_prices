@@ -46,3 +46,4 @@ df_aggr.drop(columns=drop_list, inplace=True)
 df_aggr.to_csv(os.path.join(main_folder, "ALL_SOLD.csv"), index=False)
 with zipfile.ZipFile(os.path.join(main_folder, "ALL_SOLD.zip"), 'w', zipfile.ZIP_DEFLATED) as zf:
     zf.write(os.path.join(main_folder, "ALL_SOLD.csv"), arcname="ALL_SOLD.csv")
+

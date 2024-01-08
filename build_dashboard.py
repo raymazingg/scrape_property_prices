@@ -28,22 +28,19 @@ def on_filter_change(user_filter, all_filters, data):
     for i in remaining_filters:
         selected[i] = ss[i]
         available[i] = data.loc[data[user_filter].isin(ss[user_filter]), i].unique()
-
         if len(ss[user_filter]) == 0:
             ss[f"{i}_default_selections"] = ss[i]
         else:
             ss[f"{i}_default_selections"] = [k for k in selected[i] if k in available[i]]
-
+    st.write(st.session_state)
     # Configure dropdown options (for dynamic filtering)
-    for i in all_filters:
-        other_active_filters = [j for j in all_filters if (i != j) and (len(ss[j]) != 0)]
-        # filtered_data_temp = data.copy()
-        indexer = pd.Series([True] * len(data))
-        for k in other_active_filters:
-            indexer = indexer & (data[k].isin(ss[f"{k}_default_selections"]))
-            # filtered_data_temp = filtered_data_temp.loc[filtered_data_temp[k].isin(ss[f"{k}_default_selections"])]
-        filtered_data_temp = data.loc[indexer]
-        ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
+    # for i in all_filters:
+    #     other_active_filters = [j for j in all_filters if (i != j) and (len(ss[j]) != 0)]
+    #     indexer = pd.Series([True] * len(data))
+    #     for k in other_active_filters:
+    #         indexer = indexer & (data[k].isin(ss[f"{k}_default_selections"]))
+    #     filtered_data_temp = data.loc[indexer]
+    #     ss[f"{i}_options"] = np.sort(filtered_data_temp[i].unique())
 
 # Define global options
 all_filters = ["suburb", "postcode", "property_type", "property_type_detail", "bedrooms", "bathrooms", "parking_spaces"]
@@ -159,118 +156,111 @@ parking_spaces_select = st.sidebar.multiselect(label="Select the Number of Parki
                                               default=ss["parking_spaces_default_selections"],
                                               key="parking_spaces")
 # Filter data based on selected filters
-active_filters = [i for i in all_filters if len(ss[i]) != 0]
-query_string = ""
-for i in range(len(active_filters)):
-    if i == 0:
-        query_string = query_string + f"{active_filters[i]} == @{active_filters[i]}_select"
-    else:
-        query_string = query_string + " & " + f"{active_filters[i]} == @{active_filters[i]}_select"
-if query_string == "":
-    df_selection = data
-else:
-    df_selection = data.query(query_string)
-
-del data
-gc.collect()
-
-# Aggregate option selections (level and type)
-aggregate_option_selection = st.columns(2, gap="medium")
-with aggregate_option_selection[0]:
-    aggregate_option_level = st.selectbox("Select the level of Aggregation for Time Distribution Plots",
-                                    ("Daily", "Monthly", "Quarterly", "Half-Yearly", "Annually"), index=2)
-with aggregate_option_selection[-1]:
-    aggregate_option_type = st.selectbox("Select the type of Aggregation for Time Distribution Plots",
-                                    ("Mean", "Median", "Mode", "Min", "Max"))
-
-# Timescale slider
-factor_option_level = st.selectbox("Select the factor to compare by in Time Distribution Plots (Factor Views)", all_filters)
-time_select = st.slider(label="Select time range for Time Distribution Plots", min_value=min_date, max_value=max_date, value=[min_date, max_date], format='MMM DD, YYYY')
-if time_select[0] != min_date or time_select[1] != max_date:
-    df_selection = df_selection.loc[(df_selection["sold_date"] >= pd.Timestamp(time_select[0])) & (df_selection["sold_date"] <= pd.Timestamp(time_select[1]))]
-
-st.divider()
-
-# Add date columns based on aggregation level
-if aggregate_option_level == "Monthly":
-    df_selection["sold_month"] = df_selection["sold_date"].dt.strftime('%Y') + df_selection["sold_date"].dt.strftime('%m')
-elif aggregate_option_level == "Quarterly":
-    df_selection["sold_quarter"] = pd.PeriodIndex(df_selection["sold_date"], freq='Q').astype(str)
-elif aggregate_option_level == "Half-Yearly":
-    df_selection["sold_half_year"] = df_selection["sold_date"].dt.strftime('%Y') + np.where(df_selection["sold_date"].dt.month.le(6), 'H1', 'H2').astype(str)
-elif aggregate_option_level == "Annually":
-    df_selection["sold_year"] = df_selection["sold_date"].dt.strftime('%Y')
-
-# Mapping for aggregate level and type
-aggregate_level_map = {"Daily": "sold_date", "Monthly": "sold_month", "Quarterly": "sold_quarter", "Half-Yearly": "sold_half_year", "Annually": "sold_year"}
-aggregate_type_map = {"Mean": "mean_price", "Median": "median_price", "Mode": "mode_price", "Min": "min_price", "Max": "max_price"}
-
-# Get aggregated/factored dataframes
-if aggregate_option_type == "Mean":
-    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
-    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
-elif aggregate_option_type == "Median":
-    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
-    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
-elif aggregate_option_type == "Mode":
-    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
-    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
-elif aggregate_option_type == "Max":
-    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
-    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
-elif aggregate_option_type == "Min":
-    aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
-    factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
-
-del df_selection
-gc.collect()
-
-# Intermediate sorting required for factor graphs
-if aggregate_level_map[aggregate_option_level] in ["sold_date", "sold_month", "sold_year"]:
-    factor_by_date["sort_date"] = pd.to_numeric(factor_by_date[aggregate_level_map[aggregate_option_level]], errors="coerce")
-elif aggregate_level_map[aggregate_option_level] == "sold_half_year":
-    factor_by_date["year"] = factor_by_date["sold_half_year"].str[:4]
-    factor_by_date["half_year"] = factor_by_date["sold_half_year"].str[-1]
-    factor_by_date["sort_date"] = pd.to_numeric(factor_by_date["year"] + factor_by_date["half_year"], errors="coerce")
-elif aggregate_level_map[aggregate_option_level] == "sold_quarter":
-    factor_by_date["year"] = factor_by_date["sold_quarter"].str[:4]
-    factor_by_date["quarter"] = factor_by_date["sold_quarter"].str[-1]
-    factor_by_date["sort_date"] = pd.to_numeric(factor_by_date["year"] + factor_by_date["quarter"], errors="coerce")
-factor_by_date = factor_by_date.sort_values(by=[factor_option_level, "sort_date"]).reset_index(drop=True)
-
-# Line charts - for price metrics
-aggregate_fig = px.line(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type], title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Aggregate View", template="plotly_white")
-factor_fig = px.line(factor_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type],
-                     color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
-                     title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Factor View",
-                     template="plotly_white")
-factor_fig.update_layout(legend=dict(orientation="h", y=-0.22))
-st.plotly_chart(aggregate_fig, use_container_width=True)
-st.plotly_chart(factor_fig, use_container_width=True)
-st.divider()
-
-# Bar charts - for volume metrics
-aggregate_fig_bar = px.bar(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y="count", category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
-                     title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Aggregate View",
-                     template="plotly_white")
-aggregate_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
-factor_fig_bar = px.bar(factor_by_date, x=aggregate_level_map[aggregate_option_level], y="count", color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
-                     title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Factor View",
-                     template="plotly_white")
-factor_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
-
-st.plotly_chart(aggregate_fig_bar, use_container_width=True)
-st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
-st.plotly_chart(factor_fig_bar, use_container_width=True)
-st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
-st.divider()
-
-for name in dir():
-    if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
-        del globals()[name]
-
-for name in dir():
-    if not (name.startswith('_') or name.startswith('ss') or name.startswith('st') or name.startswith('pd') or name.startswith('np') or name.startswith('tog') or name.startswith('px') or name.startswith('gc')):
-        del locals()[name]
-
-gc.collect()
+# active_filters = [i for i in all_filters if len(ss[i]) != 0]
+# query_string = ""
+# for i in range(len(active_filters)):
+#     if i == 0:
+#         query_string = query_string + f"{active_filters[i]} == @{active_filters[i]}_select"
+#     else:
+#         query_string = query_string + " & " + f"{active_filters[i]} == @{active_filters[i]}_select"
+# if query_string == "":
+#     df_selection = data
+# else:
+#     df_selection = data.query(query_string)
+#
+# del data
+# gc.collect()
+#
+# # Aggregate option selections (level and type)
+# aggregate_option_selection = st.columns(2, gap="medium")
+# with aggregate_option_selection[0]:
+#     aggregate_option_level = st.selectbox("Select the level of Aggregation for Time Distribution Plots",
+#                                     ("Daily", "Monthly", "Quarterly", "Half-Yearly", "Annually"), index=2)
+# with aggregate_option_selection[-1]:
+#     aggregate_option_type = st.selectbox("Select the type of Aggregation for Time Distribution Plots",
+#                                     ("Mean", "Median", "Mode", "Min", "Max"))
+#
+# # Timescale slider
+# factor_option_level = st.selectbox("Select the factor to compare by in Time Distribution Plots (Factor Views)", all_filters)
+# time_select = st.slider(label="Select time range for Time Distribution Plots", min_value=min_date, max_value=max_date, value=[min_date, max_date], format='MMM DD, YYYY')
+# if time_select[0] != min_date or time_select[1] != max_date:
+#     df_selection = df_selection.loc[(df_selection["sold_date"] >= pd.Timestamp(time_select[0])) & (df_selection["sold_date"] <= pd.Timestamp(time_select[1]))]
+#
+# st.divider()
+#
+# # Add date columns based on aggregation level
+# if aggregate_option_level == "Monthly":
+#     df_selection["sold_month"] = df_selection["sold_date"].dt.strftime('%Y') + df_selection["sold_date"].dt.strftime('%m')
+# elif aggregate_option_level == "Quarterly":
+#     df_selection["sold_quarter"] = pd.PeriodIndex(df_selection["sold_date"], freq='Q').astype(str)
+# elif aggregate_option_level == "Half-Yearly":
+#     df_selection["sold_half_year"] = df_selection["sold_date"].dt.strftime('%Y') + np.where(df_selection["sold_date"].dt.month.le(6), 'H1', 'H2').astype(str)
+# elif aggregate_option_level == "Annually":
+#     df_selection["sold_year"] = df_selection["sold_date"].dt.strftime('%Y')
+#
+# # Mapping for aggregate level and type
+# aggregate_level_map = {"Daily": "sold_date", "Monthly": "sold_month", "Quarterly": "sold_quarter", "Half-Yearly": "sold_half_year", "Annually": "sold_year"}
+# aggregate_type_map = {"Mean": "mean_price", "Median": "median_price", "Mode": "mode_price", "Min": "min_price", "Max": "max_price"}
+#
+# # Get aggregated/factored dataframes
+# if aggregate_option_type == "Mean":
+#     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
+#     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mean_price=('price', 'mean'), count=('price', 'count')).reset_index(drop=False)
+# elif aggregate_option_type == "Median":
+#     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
+#     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(median_price=('price', 'median'), count=('price', 'count')).reset_index(drop=False)
+# elif aggregate_option_type == "Mode":
+#     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
+#     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(mode_price=('price', 'mode'), count=('price', 'count')).reset_index(drop=False)
+# elif aggregate_option_type == "Max":
+#     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
+#     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(max_price=('price', 'max'), count=('price', 'count')).reset_index(drop=False)
+# elif aggregate_option_type == "Min":
+#     aggregate_by_date = df_selection.groupby([aggregate_level_map[aggregate_option_level]]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
+#     factor_by_date = df_selection.groupby(by=[aggregate_level_map[aggregate_option_level]] + [factor_option_level]).agg(min_price=('price', 'min'), count=('price', 'count')).reset_index(drop=False)
+#
+# del df_selection
+# gc.collect()
+#
+# # Intermediate sorting required for factor graphs
+# if aggregate_level_map[aggregate_option_level] in ["sold_date", "sold_month", "sold_year"]:
+#     factor_by_date["sort_date"] = pd.to_numeric(factor_by_date[aggregate_level_map[aggregate_option_level]], errors="coerce")
+# elif aggregate_level_map[aggregate_option_level] == "sold_half_year":
+#     factor_by_date["year"] = factor_by_date["sold_half_year"].str[:4]
+#     factor_by_date["half_year"] = factor_by_date["sold_half_year"].str[-1]
+#     factor_by_date["sort_date"] = pd.to_numeric(factor_by_date["year"] + factor_by_date["half_year"], errors="coerce")
+# elif aggregate_level_map[aggregate_option_level] == "sold_quarter":
+#     factor_by_date["year"] = factor_by_date["sold_quarter"].str[:4]
+#     factor_by_date["quarter"] = factor_by_date["sold_quarter"].str[-1]
+#     factor_by_date["sort_date"] = pd.to_numeric(factor_by_date["year"] + factor_by_date["quarter"], errors="coerce")
+# factor_by_date = factor_by_date.sort_values(by=[factor_option_level, "sort_date"]).reset_index(drop=True)
+#
+# # Line charts - for price metrics
+# aggregate_fig = px.line(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type], title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Aggregate View", template="plotly_white")
+# factor_fig = px.line(factor_by_date, x=aggregate_level_map[aggregate_option_level], y=aggregate_type_map[aggregate_option_type],
+#                      color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
+#                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Price Time Distribution (<span style='color:#8A3CC4'>{aggregate_option_type}</span>) - Factor View",
+#                      template="plotly_white")
+# factor_fig.update_layout(legend=dict(orientation="h", y=-0.22))
+# st.plotly_chart(aggregate_fig, use_container_width=True)
+# st.plotly_chart(factor_fig, use_container_width=True)
+# st.divider()
+#
+# # Bar charts - for volume metrics
+# aggregate_fig_bar = px.bar(aggregate_by_date, x=aggregate_level_map[aggregate_option_level], y="count", category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
+#                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Aggregate View",
+#                      template="plotly_white")
+# aggregate_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
+# factor_fig_bar = px.bar(factor_by_date, x=aggregate_level_map[aggregate_option_level], y="count", color=factor_option_level, category_orders={aggregate_level_map[aggregate_option_level]: factor_by_date.sort_values(by=["sort_date"])[aggregate_level_map[aggregate_option_level]].unique()},
+#                      title=f"<span style='color:#8A3CC4'>{aggregate_option_level}</span> Sales Volume Time Distribution - Factor View",
+#                      template="plotly_white")
+# factor_fig_bar.update_layout(legend=dict(orientation="h", y=-0.22))
+#
+# st.plotly_chart(aggregate_fig_bar, use_container_width=True)
+# st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
+# st.plotly_chart(factor_fig_bar, use_container_width=True)
+# st.caption("Zoom in, or set aggregation level to a more broad selection to see bar chart better.")
+# st.divider()
+#
+# del aggregate_by_date, factor_by_date, aggregate_fig, factor_fig, aggregate_fig_bar, factor_fig_bar
+# gc.collect()
